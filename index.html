@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registo de Valores em Euro</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font import */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7f6;
+        }
+        /* Style for the message box */
+        #messageBox {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 0.75rem; /* rounded-lg */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-xl */
+            z-index: 1000;
+            text-align: center;
+            max-width: 90%;
+            border: 1px solid #e2e8f0; /* border-gray-200 */
+        }
+        #messageBox button {
+            background-color: #3b82f6; /* blue-500 */
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.5rem; /* rounded-md */
+            margin-top: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #messageBox button:hover {
+            background-color: #2563eb; /* blue-600 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl border border-gray-200">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Registo de talões multibanco</h1>
+
+        <div class="mb-6 flex flex-col sm:flex-row justify-between items-center bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <div class="text-lg font-semibold text-blue-800 mb-2 sm:mb-0">
+                Data: <span id="currentDate" class="text-blue-600"></span>
+            </div>
+            <div class="text-lg font-semibold text-blue-800">
+                Total: <span id="totalValue" class="text-blue-600">0,00 €</span>
+            </div>
+        </div>
+
+        <div class="mb-6 bg-green-50 p-4 rounded-lg border border-green-200">
+            <label for="euroValue" class="block text-gray-700 text-lg font-bold mb-2 text-center">
+                Talão número: <span id="orderNumber" class="text-green-600">1</span>
+            </label>
+            <input type="number" id="euroValue" placeholder="Ex: 25.50" step="0.01" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent mb-3">
+            <button id="addValueButton" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg w-full transition duration-300 ease-in-out transform hover:scale-105">
+                Adicionar Valor
+            </button>
+        </div>
+
+        <!-- Section for correcting a value - Moved above the table -->
+        <div class="mb-6 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+            <h2 class="text-xl font-bold text-gray-700 mb-4 text-center">Corrigir Valor de Talão</h2>
+            <div class="flex flex-col sm:flex-row gap-4 mb-3">
+                <div class="w-full sm:w-1/2">
+                    <label for="correctOrderNumber" class="block text-gray-700 text-sm font-bold mb-2">
+                        Número do Talão a Corrigir:
+                    </label>
+                    <input type="number" id="correctOrderNumber" placeholder="Nº Talão" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent">
+                </div>
+                <div class="w-full sm:w-1/2">
+                    <label for="newEuroValue" class="block text-gray-700 text-sm font-bold mb-2">
+                        Novo Valor (€):
+                    </label>
+                    <input type="number" id="newEuroValue" placeholder="Novo Valor" step="0.01" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent">
+                </div>
+            </div>
+            <button id="correctValueButton" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg w-full transition duration-300 ease-in-out transform hover:scale-105">
+                Corrigir Valor
+            </button>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full bg-white rounded-lg shadow-md border border-gray-200">
+                <thead>
+                    <tr class="bg-gray-200 text-gray-700 uppercase text-sm leading-normal">
+                        <th class="py-3 px-6 text-left rounded-tl-lg">Nº.</th>
+                        <th class="py-3 px-6 text-left rounded-tr-lg">Valor (€)</th>
+                        <!-- Data Adição column removed -->
+                    </tr>
+                </thead>
+                <tbody id="valueTableBody" class="text-gray-600 text-sm font-light">
+                    <!-- Values will be added here dynamically -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-6 text-center">
+            <button id="clearDataButton" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg w-full block mx-auto transition duration-300 ease-in-out transform hover:scale-105">
+                Limpar Todos os Dados
+            </button>
+        </div>
+    </div>
+
+    <!-- Message Box HTML -->
+    <div id="messageBox" class="rounded-lg shadow-xl border border-gray-200">
+        <p id="messageText" class="text-lg font-semibold text-gray-800 mb-4"></p>
+        <button id="closeMessageBox">OK</button>
+    </div>
+
+    <script>
+        const MAX_VALUES = 100; // Define the maximum number of values
+        let values = []; // Array to store the euro values
+        let orderCounter = 1; // Counter for the order number
+
+        // DOM elements
+        const currentDateSpan = document.getElementById('currentDate');
+        const totalValueSpan = document.getElementById('totalValue');
+        const orderNumberSpan = document.getElementById('orderNumber');
+        const euroValueInput = document.getElementById('euroValue');
+        const addValueButton = document.getElementById('addValueButton');
+        const valueTableBody = document.getElementById('valueTableBody');
+        const clearDataButton = document.getElementById('clearDataButton');
+        const messageBox = document.getElementById('messageBox');
+        const messageText = document.getElementById('messageText');
+        const closeMessageBoxButton = document.getElementById('closeMessageBox');
+
+        // New DOM elements for correction functionality
+        const correctOrderNumberInput = document.getElementById('correctOrderNumber');
+        const newEuroValueInput = document.getElementById('newEuroValue');
+        const correctValueButton = document.getElementById('correctValueButton');
+
+        // Function to show a custom message box
+        function showMessageBox(message) {
+            messageText.textContent = message;
+            messageBox.style.display = 'block';
+        }
+
+        // Function to hide the custom message box
+        function hideMessageBox() {
+            messageBox.style.display = 'none';
+        }
+
+        // Event listener for closing the message box
+        closeMessageBoxButton.addEventListener('click', hideMessageBox);
+
+        // Function to format the date as DD-MM-YYYY
+        function getFormattedDate(date = new Date()) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+            const year = date.getFullYear();
+            return `${day}-${month}-${year}`;
+        }
+
+        // Function to update the date display
+        function updateDateDisplay() {
+            currentDateSpan.textContent = getFormattedDate();
+        }
+
+        // Function to calculate and update the total value
+        function updateTotalValue() {
+            const total = values.reduce((sum, item) => sum + item.value, 0);
+            totalValueSpan.textContent = `${total.toFixed(2).replace('.', ',')} €`; // Format for Euro
+        }
+
+        // Function to render the table with current values
+        function renderTable() {
+            valueTableBody.innerHTML = ''; // Clear existing rows
+            values.forEach((item, index) => { // Added index for alternating colors
+                const row = valueTableBody.insertRow();
+                // Apply alternating background colors using Tailwind CSS classes
+                row.classList.add('hover:bg-gray-100', index % 2 === 0 ? 'bg-white' : 'bg-gray-50');
+                row.innerHTML = `
+                    <td class="py-3 px-6 text-left whitespace-nowrap">${item.order}</td>
+                    <td class="py-3 px-6 text-left">${item.value.toFixed(2).replace('.', ',')}</td>
+                    <!-- Data Adição column removed from render -->
+                `;
+            });
+        }
+
+        // Function to save data to localStorage
+        function saveData() {
+            localStorage.setItem('euroTrackerValues', JSON.stringify(values));
+            localStorage.setItem('euroTrackerOrderCounter', orderCounter);
+        }
+
+        // Function to load data from localStorage
+        function loadData() {
+            const storedValues = localStorage.getItem('euroTrackerValues');
+            const storedOrderCounter = localStorage.getItem('euroTrackerOrderCounter');
+
+            if (storedValues) {
+                values = JSON.parse(storedValues);
+                // Ensure values are numbers after parsing from string
+                values = values.map(item => ({
+                    // When loading, ensure all necessary properties exist, even if 'dateAdded' is no longer displayed.
+                    // This prevents errors if older data with 'dateAdded' is loaded.
+                    order: item.order,
+                    value: parseFloat(item.value), // Convert value back to number
+                    dateAdded: item.dateAdded || getFormattedDate() // Keep dateAdded in data for consistency, provide fallback
+                }));
+            }
+            if (storedOrderCounter) {
+                orderCounter = parseInt(storedOrderCounter);
+            }
+            updateUI();
+        }
+
+        // Function to add a new value
+        function addNewValue() {
+            if (values.length >= MAX_VALUES) {
+                showMessageBox(`Limite de ${MAX_VALUES} valores atingido. Não é possível adicionar mais.`);
+                euroValueInput.value = '';
+                return;
+            }
+
+            const valueString = euroValueInput.value.replace(',', '.'); // Replace comma with dot for parsing
+            const value = parseFloat(valueString);
+
+            if (isNaN(value) || value <= 0) {
+                showMessageBox('Por favor, introduza um valor numérico válido e positivo.');
+                return;
+            }
+
+            const newValue = {
+                order: orderCounter,
+                value: value,
+                dateAdded: getFormattedDate() // Still store date, even if not displayed
+            };
+
+            values.push(newValue);
+            orderCounter++;
+            euroValueInput.value = ''; // Clear input
+
+            updateUI();
+            saveData(); // Save data after adding
+        }
+
+        // Function to correct an existing value
+        function correctExistingValue() {
+            const orderToCorrect = parseInt(correctOrderNumberInput.value);
+            const newValueString = newEuroValueInput.value.replace(',', '.');
+            const newValue = parseFloat(newValueString);
+
+            if (isNaN(orderToCorrect) || orderToCorrect <= 0) {
+                showMessageBox('Por favor, introduza um número de talão válido para correção.');
+                return;
+            }
+
+            if (isNaN(newValue) || newValue <= 0) {
+                showMessageBox('Por favor, introduza um novo valor numérico válido e positivo para correção.');
+                return;
+            }
+
+            const index = values.findIndex(item => item.order === orderToCorrect);
+
+            if (index !== -1) {
+                values[index].value = newValue;
+                // No change to dateAdded for correction
+                updateUI();
+                saveData();
+                showMessageBox(`Talão número ${orderToCorrect} corrigido para ${newValue.toFixed(2).replace('.', ',')} €.`);
+                correctOrderNumberInput.value = '';
+                newEuroValueInput.value = '';
+            } else {
+                showMessageBox(`Talão número ${orderToCorrect} não encontrado.`);
+            }
+        }
+
+
+        // Event listener for adding a new value via button click
+        addValueButton.addEventListener('click', addNewValue);
+
+        // Event listener for adding a new value via Enter key press in the input field
+        euroValueInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                addNewValue();
+            }
+        });
+
+        // Event listener for correcting a value via button click
+        correctValueButton.addEventListener('click', correctExistingValue);
+
+        // Event listener for correcting a value via Enter key press in the correct order number input field
+        correctOrderNumberInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                newEuroValueInput.focus(); // Move focus to the new value input
+            }
+        });
+
+        // Event listener for correcting a value via Enter key press in the new euro value input field
+        newEuroValueInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                correctExistingValue();
+            }
+        });
+
+        // Function to clear all data
+        clearDataButton.addEventListener('click', () => {
+            // Using a custom message box instead of confirm
+            showMessageBox('Tem a certeza que deseja limpar todos os dados? Esta ação não pode ser desfeita. (Clique OK para confirmar)');
+            messageBox.querySelector('button').onclick = () => { // Change OK button behavior for this specific message
+                values = [];
+                orderCounter = 1;
+                updateUI();
+                saveData(); // Save empty data
+                hideMessageBox(); // Hide message box after action
+                showMessageBox('Todos os dados foram limpos.'); // Show confirmation message
+                messageBox.querySelector('button').onclick = hideMessageBox; // Reset OK button behavior
+            };
+        });
+
+        // Function to update all UI elements
+        function updateUI() {
+            updateDateDisplay();
+            updateTotalValue();
+            renderTable();
+            orderNumberSpan.textContent = orderCounter;
+        }
+
+        // Initial load and setup
+        window.onload = () => {
+            loadData(); // Load data on page load
+        };
+    </script>
+</body>
+</html>
